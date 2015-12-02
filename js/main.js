@@ -1,109 +1,39 @@
 $(document).ready(function() {
-  var holdingArray = [],
-      tempNumber = "0",
-      calcMade = false;
+  
+  var inputField = { number: "0", haveBeenCalculated: false },
+      allCalculationsString,
+      stringUsedForEval;
   
   /**
-   * Changes text displayed in the #screen-string span element
-   * Iterates over values inside array holdingArray and replaces current #screen-string
+   * Changes text displayed in the "screen" above the buttons
    *
    */
   function changeScreenText() {
     
-    $("#screen-string").text("");
-    
-    $.each(holdingArray, function(index, value) {
-        $("#screen-string").append(value + " ");
-    });
+    $("#screen-current-number").text(inputField.number);  
+    $("#screen-string").text(allCalculationsString);
     
   }
   
   /**
-   * Calculates the result and displays it on screen
-   * Uses array holdingArray to get calculations to be made
-   *
-   */
-  function calculate() {
-
-    var arrayLength = holdingArray.length - 1, // -1 because it"s an array
-        stringCatcher = "",
-        inbetweenResult,
-        tempStringForCalc;
-        
-    // Put entire calculation string at top
-    changeScreenText();
-    
-    // Iterate through array containing calculations to be done
-    $.each(holdingArray, function(index, value) {
-      
-      // Append value for index to the stringCatcher string
-      stringCatcher += value;
-      
-      // If the index is an even number and not zero
-      if(index % 2 === 0 && index !== 0) {
-        
-        // Done for every even index higher than 2
-        if(inbetweenResult) {
-          
-          // Make string to do eval() on using inbetweenResult and the two values concatenaded in stringCatcher
-          tempStringForCalc = inbetweenResult += stringCatcher;
-          
-          // Do eval(), replace current inbetweenResult, reset stringCatcher
-          inbetweenResult = eval(tempStringForCalc);
-          stringCatcher = "";
-          
-        }
-        // Done on index 2 in array
-        else {
-          
-          // Do eval() on everything in stringCatcher, put in inbetweenResult, then reset stringCatcher
-          inbetweenResult = eval(stringCatcher);
-          stringCatcher = "";
-          
-        }
-      }
-      
-    });
-    
-    // Return result
-    return inbetweenResult;
-    
-  }
-  
-  /**
-   * Clear the screen
-   * If param is false, clear only input value (what's expected with CE button)
-   *
-   * @param boolean
-   *
-   */
-  function clearScreen(everything) {
-    
-    // Clear the input field and tempNumber variable
-    tempNumber = "0";
-    $("#screen-current-number").text(0);
-    
-    // If it's the C button, also clear holdingArray and remove the calculation from screen
-    if(everything) {
-      holdingArray = [];
-      changeScreenText();
-    }
-    
-  }
-  
-  /**
-   * Click event hanlder for buttons with class .erase
+   * Click event handler for buttons with class .erase
    *
    */
   $(".erase").click(function() {
     
+    // Only clear previously entered calculations if hard clear button is clicked
     if($(this).hasClass("c")) {
-      calcMade = false;
-      clearScreen(true);
+      
+      // Clear all previous choices made
+      allCalculationsString = "";
+      stringUsedForEval = "";
+      inputField.haveBeenCalculated = false;
+      
     }
-    else {
-      clearScreen();
-    }
+    
+    // Reset inputField.number and update the screen
+    inputField.number = "0";
+    changeScreenText();
     
   });
   
@@ -113,52 +43,67 @@ $(document).ready(function() {
    */
   $(".number, .decimal").click(function() {
     
-    var clickedNumber = this.textContent; // A string, containing a digit or a dot (.), taken from the button text values
-    
-    if(calcMade === true) {
-      clearScreen(true);
-      calcMade = false;
-    }
-    
-    // If the string already contains a dot and decimal button is clicked, do nothing
-    // Here to prevent multiple decimals in number
-    if(tempNumber.indexOf(".") >= 0 && $(this).hasClass("decimal")) {
-      
-      return;
-      
-    }
-    // Otherwise change tempNumber and #screen-current-number
-    else {
-      
-      // If the number in the screen is at zero (default start mode), this will be triggered
-      // Replaces the tempNumber with clicked no or appends decimal
-      if(tempNumber.length < 2 && parseInt(tempNumber) === 0) {
+    var regexForDigitsAndDot = /^([\d]|\.)$/,
+        clickedButton = this.textContent;
         
-        // If decimal is clicked when only 0 in tempNumber, append the decimal
-        if(clickedNumber === ".") {
+    // When a button is pressed and the input field is currently occupied by a
+    // previously calculated number, clear it before continuing
+    if(inputField.haveBeenCalculated === true) {
+      
+      inputField.number = "0";
+      inputField.haveBeenCalculated = false;
+      
+    }
+    
+    // Only accepts a single digit or single decimal character value
+    if(regexForDigitsAndDot.test(clickedButton)) {
+      
+      // If the decimal button is clicked
+      if(clickedButton === ".") {
+        
+        // Check if inputField.number already contain s a dot character
+        if(inputField.number.indexOf(".") !== -1) {
           
-          $("#screen-current-number").append(clickedNumber);
-          tempNumber += clickedNumber;
+          // Cancel function so there's not two dots in inputField.number
+          return;
           
         }
-        // Otherwise change the tempNumber
         else {
           
-          $("#screen-current-number").text(clickedNumber);
-          tempNumber = clickedNumber;
+          // Append dot character to inputField.number
+          inputField.number = inputField.number += clickedButton;
           
         }
+        
       }
-      // If the tempNumber is anything but a single zero
+      // If a number button is clicked
       else {
         
-        $("#screen-current-number").append(clickedNumber);
-        tempNumber += clickedNumber;
+        // If the inputField.number is at default value "0" and clickedButton is "0"
+        if(inputField.number === "0" && clickedButton === "0") {
+          
+          // Cancel the function so there's no inputField.number starting with more than one zero
+          return;
+          
+        }
+        // Replaces inputField.number if it's "0" and clickedButton is other than "0"
+        else if(inputField.number === "0" && clickedButton !== "0") {
+        
+          inputField.number = clickedButton;
+        
+        }
+        // Append clickedButton to inputField.number
+        else {
+          
+          inputField.number = inputField.number += clickedButton;
+          
+        }
         
       }
+      
     }
     
-    //console.log(tempNumber);
+    changeScreenText();
     
   });
   
@@ -167,41 +112,65 @@ $(document).ready(function() {
    *
    */
   $(".calculation").click(function() {
-    
-    var tempNumberIntOrFloat;
-    
-    tempNumberIntOrFloat = parseFloat(tempNumber);
-    
-    // Only allow adding to holdingArray if input value is different than zero (0)
-    if(tempNumberIntOrFloat !== 0) {
-    
-      // If button clicked is addition "+"
-      if($(this).hasClass("addition")) {
+  
+    var regexForCalculationChars = /^(\+|\-|\/|\*)$/,
+        clickedButton = this.textContent,
+        tempResult;
         
-        holdingArray.push(tempNumberIntOrFloat, "+");
+    // Check that the calculation char is one of the allowed (+ - / *)
+    if(regexForCalculationChars.test(clickedButton)) {
+      
+      // If the client wants to change recently entered calculation choice
+      if(inputField.haveBeenCalculated === true) {
         
-      }
-      else if($(this).hasClass("subtraction")) {
+        // Remove previously chosen calculation choice from end of strings (last character)
+        allCalculationsString = allCalculationsString.slice(0, -1);
+        stringUsedForEval = stringUsedForEval.slice(0, -1);
         
-        holdingArray.push(tempNumberIntOrFloat, "-");
-        
-      }
-      else if($(this).hasClass("multiplication")) {
-        
-        holdingArray.push(tempNumberIntOrFloat, "*");
+        // Add newly chosen calculation method to end of strings (last character)
+        allCalculationsString += clickedButton;
+        stringUsedForEval += clickedButton;
         
       }
-      else if($(this).hasClass("division")) {
+      else {
         
-        holdingArray.push(tempNumberIntOrFloat, "/");
+        // If there already have been an amount added
+        if(allCalculationsString) {
+          
+          // Put newly entered value in output string allCalculationsString
+          allCalculationsString = allCalculationsString + " " + inputField.number + " " + clickedButton;
+          
+          // Prepare stringUsedForEval for the eval() function
+          stringUsedForEval = stringUsedForEval += inputField.number;
+          
+          // Put result in var tempResult
+          tempResult = eval(stringUsedForEval);
+          
+          // Change the inputField.number to the result
+          inputField.number = tempResult;
+          
+          // To let function that handles button entering know it is a temporary result
+          inputField.haveBeenCalculated = true;
+          
+          // Change var stringUsedForEval for next round of calculations
+          stringUsedForEval = tempResult + "" + clickedButton;
+          
+          
+        }
+        // If first calculation added
+        else {
+          
+          stringUsedForEval = inputField.number + "" + clickedButton;
+          allCalculationsString = inputField.number + " " + clickedButton;
+          inputField.haveBeenCalculated = true;
+          
+        }
         
       }
       
-      changeScreenText();
-      tempNumber = "0";
-      $("#screen-current-number").text("0");
-    
     }
+    
+    changeScreenText();
     
   });
   
@@ -211,24 +180,24 @@ $(document).ready(function() {
    */
   $(".equals").click(function() {
     
-    if(holdingArray.length > 1) {
-      
-      var result;
-      
-      holdingArray.push(parseFloat(tempNumber));
-      result = calculate();
-      $("#screen-current-number").text(result);
-      
-      holdingArray = [];
-      tempNumber = "0";
-      calcMade = true;
-      
-    }
-    else {
-      
-      return;
-      
-    }
+    var result;
+    
+    // Prepare the string for eval() function
+    stringUsedForEval = stringUsedForEval + inputField.number;
+    
+    // Get result
+    result = eval(stringUsedForEval);
+    
+    // Display result in input field
+    inputField.number = result;
+    
+    // Clear all previous choices made
+    allCalculationsString = "";
+    stringUsedForEval = "";
+    inputField.haveBeenCalculated = false;
+    
+    changeScreenText();
+    
   });
     
 });
